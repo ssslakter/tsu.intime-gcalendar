@@ -24,6 +24,10 @@ def type_to_color(lesson_type: str):
             return "2"
         case "PRACTICE":
             return "1"
+        case "CONTROL_POINT":
+            return "3"
+        case _:
+            return "1"
 
 
 def check_if_lesson_exists(event, lesson: Lesson, date: str):
@@ -39,6 +43,10 @@ def type_to_description(lesson_type: str):
             return "Лекция"
         case "PRACTICE":
             return "Практика"
+        case "CONTROL_POINT":
+            return "Контрольная точка"
+        case a:
+            return a
 
 
 def seconds_to_hms(seconds: int) -> str:
