@@ -47,7 +47,7 @@ class GCalendarClient:
 
     def get_events(self, start_date: datetime.datetime, end_date: datetime.datetime):
         events_result = self.service.events().list(calendarId=self.config.calendar_id, timeMin=start_date.isoformat(),
-                                                   timeMax=end_date.isoformat(),
+                                                   timeMax=(end_date+datetime.timedelta(days=1)).isoformat(),
                                                    singleEvents=True,
                                                    orderBy='startTime').execute()
         events = events_result.get('items', [])
