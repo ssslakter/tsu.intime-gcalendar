@@ -1,7 +1,9 @@
+import datetime
+
 import requests
 import json
 
-from data_classes import Faculty, Group, Day
+from data_classes import Faculty, Group, Lesson, from_api_day
 
 IN_TIME_URL = "https://intime.tsu.ru/api/web/v1"
 
@@ -21,10 +23,11 @@ class InTimeClient:
         return list(map(lambda x: Group.from_dict(x), result))
 
     @staticmethod
-    def get_schedule(group: Group, date_from: str, date_to: str):
+    def get_schedule(group: Group, date_from: datetime.datetime, date_to: datetime.datetime) -> list[Lesson]:
+        date_from, date_to = str(date_from.date()), str(date_to.date())
         result = requests.get(
             IN_TIME_URL + f"/schedule/group?id={group.id}&dateFrom={date_from}&dateTo={date_to}").json()
-        return list(map(lambda x: Day.from_api_dict(x), result))
+        return [lesson for day in map(lambda x: from_api_day(x), result) for lesson in day]
 
 
 if __name__ == '__main__':

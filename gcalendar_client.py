@@ -1,23 +1,25 @@
 from __future__ import print_function
 
+import datetime
 import os.path
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError
 
-from data_classes import Lesson
-from logic import type_to_color, seconds_to_hms, type_to_description
+from data_classes import Lesson, Config
+from logic import type_to_color, type_to_description
 
 # If modifying these scopes, delete the file token.json.
 SCOPES = ['https://www.googleapis.com/auth/calendar.events',
-          'https://www.googleapis.com/auth/calendar.readonly']
+          'https://www.googleapis.com/auth/calendar.readonly',
+          'https://www.googleapis.com/auth/calendar']
 
 
 class GCalendarClient:
-    def __init__(self):
+    def __init__(self, config: Config):
+        self.config = config
         self.creds = self.authorize()
         self.service = build('calendar', 'v3', credentials=self.creds)
 
@@ -43,26 +45,35 @@ class GCalendarClient:
         for id_, color in colors['event'].items():
             print(f"{id_}: '{color['background']}', '{color['foreground']}'")
 
-    def get_events(self, start_date: str, end_date: str):
-        events_result = self.service.events().list(calendarId='primary', timeMin=start_date + "T00:00:00+07:00",
-                                                   timeMax=end_date + "T00:00:00+07:00",
+    def get_events(self, start_date: datetime.datetime, end_date: datetime.datetime):
+        events_result = self.service.events().list(calendarId=self.config.calendar_id, timeMin=start_date.isoformat(),
+                                                   timeMax=end_date.isoformat(),
                                                    singleEvents=True,
                                                    orderBy='startTime').execute()
         events = events_result.get('items', [])
         return events
 
-    def add_lesson(self, lesson: Lesson, date: str):
+    def create_calendar(self):
+        data = {
+            'summary': "Schedule",
+            'timeZone': self.config.time_zone
+        }
+        result = self.service.calendars().insert(body=data).execute()
+        print(result)
+        return result['id']
+
+    def add_lesson(self, lesson: Lesson, date: datetime.datetime):
         event = {
             'summary': lesson.title,
             'location': lesson.audience,
             'description': f"{type_to_description(lesson.lesson_type)}\n{lesson.professor}",
             'start': {
-                'dateTime': date + "T" + seconds_to_hms(int(lesson.start)) + "+07:00"
+                'dateTime': lesson.start.isoformat()
             },
             'end': {
-                'dateTime': date + "T" + seconds_to_hms(int(lesson.end)) + "+07:00"
+                'dateTime': lesson.end.isoformat()
             },
             'colorId': type_to_color(lesson.lesson_type),
             'workingLocationProperties.customLocation.label': "lesson"
         }
-        self.service.events().insert(calendarId='primary', body=event).execute()
+        self.service.events().insert(calendarId=self.config.calendar_id, body=event).execute()

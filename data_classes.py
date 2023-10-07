@@ -1,4 +1,6 @@
-from dataclasses import dataclass, field
+import datetime
+from dataclasses import dataclass
+import json
 from uuid import uuid4 as guid
 import inspect
 
@@ -25,51 +27,45 @@ class Group:
 
 @dataclass
 class Lesson:
-    lesson_type: str
+    start: datetime.datetime
+    end: datetime.datetime
     title: str
-    professor: str
-    start: str
-    end: str
-    audience: str
-    group: str
-
-    @classmethod
-    def from_api_dict(cls, env):
-        return cls(**{'title': env['title'],
-                      'professor': env['professor']['shortName'],
-                      'start': env['starts'],
-                      'end': env['ends'],
-                      'audience': env['audience']['name'],
-                      'lesson_type': env['lessonType'],
-                      'group': env['groups'][0]['name']
-                      })
+    lesson_type: str = "PRACTICE"
+    professor: str = None
+    audience: str = None
+    group: str = None
 
 
-@dataclass
-class Day:
-    date: str
-    lessons: list[Lesson]
+def from_api_day(day: dict) -> list[Lesson]:
+    lessons = filter(lambda x: x["type"] != "EMPTY", day['lessons'])
+    date = datetime.datetime.fromisoformat(day['date'])
 
-    @classmethod
-    def from_api_dict(cls, env):
-        lessons = filter(lambda x: x["type"] != "EMPTY", env['lessons'])
-        return cls(**{
-            "date": env['date'],
-            "lessons": list(map(lambda x: Lesson.from_api_dict(x), lessons))
-        })
+    def convert(x):
+        return Lesson(
+            title=x['title'],
+            professor=x['professor']['shortName'],
+            audience=x['audience']['name'],
+            lesson_type=x['lessonType'],
+            group=x['groups'][0]['name'],
+            start=date + datetime.timedelta(seconds=x['starts']),
+            end=date + datetime.timedelta(seconds=x['ends'])
+        )
+
+    return [convert(item) for item in lessons]
 
 
 @dataclass
 class Config:
-    calendar_id: str
-    faculty_name: str = field(default='Научно-образовательный центр "Высшая ИТ школа"')
-    group_name: str = field(default="972103")
-    allowed_group_names: list[str] = field(
-        default_factory=lambda: ['972103', '972103 (1)', '972103 (М2)'])
-    whitelist_names: list[str] = field(
-        default_factory=lambda: ['Философия',
-                                 'Профессиональный английский язык',
-                                 'Прикладная статистика',
-                                 'Паттерны архитектуры 1',
-                                 'Наукоемкая разработка 1',
-                                 'Семинар по специализации М2'])
+    time_zone: str
+    faculty_name: str
+    group_name: str
+    allowed_group_names: list[str]
+    blacklist: list[str]
+    custom: list[dict] = None
+    calendar_id: str = None
+
+
+def load_cfg(file):
+    with open(file, 'r') as f:
+        cfg = json.load(f)
+        return Config(**cfg)

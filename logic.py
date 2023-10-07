@@ -1,4 +1,7 @@
 import datetime
+from typing import Iterator, Iterable
+
+import pytz
 
 from data_classes import Lesson, Config
 
@@ -30,9 +33,12 @@ def type_to_color(lesson_type: str):
             return "1"
 
 
-def check_if_lesson_exists(event, lesson: Lesson, date: str):
-    return event['summary'] == lesson.title and event['start']['dateTime'] == date + "T" + seconds_to_hms(
-        int(lesson.start)) + "+07:00"
+def get_existing_event(events: list[dict], lesson: Lesson):
+    for ev in events:
+        start = datetime.datetime.fromisoformat(ev['start']['dateTime'])
+        if start == lesson.start:
+            return ev
+    return None
 
 
 def type_to_description(lesson_type: str):
@@ -49,13 +55,38 @@ def type_to_description(lesson_type: str):
             return a
 
 
-def seconds_to_hms(seconds: int) -> str:
-    return str(datetime.timedelta(seconds=seconds, hours=7))
-
-
-def filter_by_cfg(lessons: list[Lesson], config: Config) -> list[Lesson]:
+def get_custom(start_date: datetime.datetime, end_date: datetime.datetime, config: Config) -> list[Lesson]:
+    delta = datetime.timedelta(days=1)
     result = []
-    for lesson in lessons:
-        if lesson.title in config.whitelist_names and lesson.group in config.allowed_group_names:
-            result.append(lesson)
+    date = start_date
+    while date <= end_date:
+        for lesson in config.custom:
+            if date.weekday() != lesson['weekday']:
+                continue
+            start = read_to_utc(date, lesson['start'], config.time_zone)
+            end = read_to_utc(date, lesson['end'], config.time_zone)
+            result.append(Lesson(start, end, title=lesson['title']))
+        date += delta
     return result
+
+
+def read_to_utc(date, time: str, timezone: str):
+    tz = pytz.timezone(timezone)
+    dt = datetime.datetime.combine(date, time=datetime.time.fromisoformat(time))
+    return tz.localize(dt).astimezone(pytz.utc)
+
+
+def filter_by_cfg(lessons: Iterable[Lesson], config: Config) -> Iterable[Lesson]:
+    return _by_group(_by_name(lessons, config), config)
+
+
+def _by_name(lessons: Iterable[Lesson], config: Config) -> Iterable[Lesson]:
+    for lesson in lessons:
+        if lesson.title not in config.blacklist:
+            yield lesson
+
+
+def _by_group(lessons: Iterable[Lesson], config: Config) -> Iterable[Lesson]:
+    for lesson in lessons:
+        if lesson.group in config.allowed_group_names:
+            yield lesson
