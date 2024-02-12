@@ -22,11 +22,11 @@ def type_to_color(lesson_type: str):
     """
     match lesson_type:
         case "SEMINAR":
-            return "5"
+            return "8"
         case "LECTURE":
-            return "2"
+            return "11"
         case "PRACTICE":
-            return "1"
+            return "8"
         case "CONTROL_POINT":
             return "3"
         case _:
@@ -58,15 +58,18 @@ def type_to_description(lesson_type: str):
 def get_custom(start_date: datetime.datetime, end_date: datetime.datetime, config: Config) -> list[Lesson]:
     delta = datetime.timedelta(days=1)
     result = []
-    date = start_date
-    while date <= end_date:
-        for lesson in config.custom:
+    
+    for lesson in config.custom:
+        date = start_date
+        lesson['weekday']-=1
+        while date <= end_date:
             if date.weekday() != lesson['weekday']:
                 continue
-            start = read_to_utc(date, lesson['start'], config.time_zone)
-            end = read_to_utc(date, lesson['end'], config.time_zone)
-            result.append(Lesson(start, end, title=lesson['title']))
-        date += delta
+            lesson['start'] = read_to_utc(date, lesson['start'], config.time_zone)
+            lesson['end'] = read_to_utc(date, lesson['end'], config.time_zone)
+            
+            result.append(Lesson(**{k:v for k,v in lesson.items() if k!='weekday'}))
+            date += delta
     return result
 
 
