@@ -60,16 +60,17 @@ def get_custom(start_date: datetime.datetime, end_date: datetime.datetime, confi
     result = []
     
     for lesson in config.custom:
-        date = start_date
+        date = start_date - delta
         lesson['weekday']-=1
+        ls, le = lesson['start'], lesson['end']
         while date <= end_date:
+            date += delta
             if date.weekday() != lesson['weekday']:
                 continue
-            lesson['start'] = read_to_utc(date, lesson['start'], config.time_zone)
-            lesson['end'] = read_to_utc(date, lesson['end'], config.time_zone)
+            lesson['start'] = read_to_utc(date, ls, config.time_zone)
+            lesson['end'] = read_to_utc(date, le, config.time_zone)
             
-            result.append(Lesson(**{k:v for k,v in lesson.items() if k!='weekday'}))
-            date += delta
+            result.append(Lesson(**{k:v for k,v in lesson.items() if k!='weekday'}))      
     return result
 
 

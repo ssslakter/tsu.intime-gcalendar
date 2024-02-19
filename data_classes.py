@@ -66,6 +66,6 @@ class Config:
 
 
 def load_cfg(file):
-    with open(file, 'r') as f:
+    with open(file, 'r', encoding="utf8") as f:
         cfg = json.load(f)
         return Config(**cfg)
