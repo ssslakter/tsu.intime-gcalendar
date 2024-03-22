@@ -11,7 +11,7 @@ python ./main.py --help
 At the first time when started it will ask you to join via Google account to get access to the calendar. 
 ### Config
 To use this app you have to put `config.json` file in the root directory that would contain information about your group and faculty to use them in api.
-```json
+```jsonc
 {
   // get this in the google calendar app settings
   "calendar_id": "<your-calendar-id>@group.calendar.google.com",
