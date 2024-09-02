@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 import datetime
 import os.path
 
@@ -8,8 +6,9 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 
-from data_classes import Lesson, Config
-from logic import type_to_color, type_to_description
+from .config import Config
+from .logic import type_to_color, type_to_description
+from .models import Lesson
 
 # If modifying these scopes, delete the file token.json.
 SCOPES = ['https://www.googleapis.com/auth/calendar.events',
@@ -46,8 +45,8 @@ class GCalendarClient:
             print(f"{id_}: '{color['background']}', '{color['foreground']}'")
 
     def get_events(self, start_date: datetime.datetime, end_date: datetime.datetime):
-        events_result = self.service.events().list(calendarId=self.config.calendar_id, timeMin=start_date.isoformat(),
-                                                   timeMax=(end_date+datetime.timedelta(days=1)).isoformat(),
+        events_result = self.service.events().list(calendarId=self.config.calendar_id, timeMin=start_date.isoformat("T")+"Z",
+                                                   timeMax=(end_date+datetime.timedelta(days=1)).isoformat("T")+"Z",
                                                    singleEvents=True,
                                                    orderBy='startTime').execute()
         events = events_result.get('items', [])
@@ -68,10 +67,10 @@ class GCalendarClient:
             'location': lesson.audience,
             'description': f"{type_to_description(lesson.lesson_type)}\n{lesson.professor}",
             'start': {
-                'dateTime': lesson.start.isoformat()
+                'dateTime': lesson.start_utc.isoformat()+"Z"
             },
             'end': {
-                'dateTime': lesson.end.isoformat()
+                'dateTime': lesson.end_utc.isoformat()+"Z"
             },
             'workingLocationProperties.customLocation.label': "lesson"
         }

@@ -1,9 +1,10 @@
 import datetime
-from typing import Iterator, Iterable
+from typing import Iterable, Iterator
 
 import pytz
 
-from data_classes import Lesson, Config
+from .config import Config
+from .models import Lesson
 
 
 def type_to_color(lesson_type: str):
@@ -36,7 +37,7 @@ def type_to_color(lesson_type: str):
 def get_existing_event(events: list[dict], lesson: Lesson):
     for ev in events:
         start = datetime.datetime.fromisoformat(ev['start']['dateTime'])
-        if start == lesson.start:
+        if start == lesson.start_utc:
             return ev
     return None
 
@@ -92,5 +93,5 @@ def _by_name(lessons: Iterable[Lesson], config: Config) -> Iterable[Lesson]:
 
 def _by_group(lessons: Iterable[Lesson], config: Config) -> Iterable[Lesson]:
     for lesson in lessons:
-        if lesson.group in config.allowed_group_names:
+        if lesson.groups in config.allowed_group_names:
             yield lesson
