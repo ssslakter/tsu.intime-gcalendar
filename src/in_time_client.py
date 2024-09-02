@@ -15,7 +15,7 @@ class InTimeClient:
     @staticmethod
     def get_faculties() -> list[Faculty]:
         result = requests.get(IN_TIME_URL + "/faculties").json()
-        return list(map(lambda x: Faculty(**x), result))
+        return list(map(lambda x: Faculty(id=x['id'], name=x['name']), result))
 
     @staticmethod
     def get_groups(faculty: Faculty):
@@ -27,7 +27,7 @@ class InTimeClient:
         date_from, date_to = str(date_from.date()), str(date_to.date())
         result = requests.get(
             IN_TIME_URL + f"/schedule/group?id={group.id}&dateFrom={date_from}&dateTo={date_to}").json()
-        return [lesson for day in map(lambda x: from_api_day(x), result) for lesson in day]
+        return [lesson for day in map(lambda x: from_api_day(x), result['grid']) for lesson in day]
 
 
 if __name__ == '__main__':

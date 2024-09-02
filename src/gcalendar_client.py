@@ -73,7 +73,6 @@ class GCalendarClient:
             'end': {
                 'dateTime': lesson.end.isoformat()
             },
-            'colorId': type_to_color(lesson.lesson_type),
             'workingLocationProperties.customLocation.label': "lesson"
         }
         self.service.events().insert(calendarId=self.config.calendar_id, body=event).execute()

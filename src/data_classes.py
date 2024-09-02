@@ -43,7 +43,7 @@ def from_api_day(day: dict) -> list[Lesson]:
     def convert(x):
         return Lesson(
             title=x['title'],
-            professor=x['professor']['shortName'],
+            professor=x['professor']['fullName'],
             audience=x['audience']['name'],
             lesson_type=x['lessonType'],
             group=x['groups'][0]['name'],

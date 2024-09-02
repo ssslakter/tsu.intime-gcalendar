@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+package-dir = { "intime-gcalendar" = "src" }
+
+[project]
+name = "tsu.intime-gcalendar"
+version = "0.1.0"
+readme = "README.md"
+description = "ClI tool to convert data from Intime API to Google calendar"
+authors = [{name = "Slava Chaunin"}]
+dependencies = [
+    "google-api-python-client",
+    "google-auth-httplib2",
+    "google-auth-oauthlib",
+    "requests",
+    "pytz",
+    "click"
+]
