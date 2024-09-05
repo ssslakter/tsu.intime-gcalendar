@@ -1,22 +1,11 @@
 import datetime as dt
 
 import fastcore.all as fc
-import pytz
-from .logic import *
 
-from .config import Config
+from .config import load_cfg
 from .gcalendar_client import GCalendarClient
 from .in_time_client import InTimeClient
-
-
-# def fix_tz(date, config):
-#     return date.replace(tzinfo=pytz.utc).astimezone(pytz.timezone(config.time_zone))
-
-def to_dt(date):# -> Any:
-    return dt.datetime.combine(date, dt.datetime.min.time())
-
-def parse_date(date):
-    return dt.date.fromisoformat(date)
+from .utils import *
 
 today = dt.date.today()
 
@@ -26,17 +15,19 @@ def main(
     start_date: str = str(today),
     end_date: str = str(today+dt.timedelta(days=7))
 ):
-    config = Config.load_cfg('./config.json')
+    config = load_cfg()
     client = InTimeClient(config.intime_url)
-
-    start_date, end_date = parse_date(start_date), parse_date(end_date)
-    group = client.get_group(config.faculty_name, config.group_name)
-    schedule = client.get_schedule(group.id, start_date, end_date)
-    
     g_client = GCalendarClient(config)
+    
+    dates = [parse_date(d) for d in [start_date, end_date]]
+    
+    schedule = client.get_schedule(
+        client.get_group(config.faculty_name, config.group_name).id,
+        *dates)
+    
     if config.calendar_id is None:
         config.calendar_id = g_client.create_calendar()
-        print(f"calendar id is: {config.calendar_id} \n Please add this to config")
+        print(f"calendar id is: {config.calendar_id} \n Please add this to the config")
 
     current_events = g_client.get_events(to_dt(start_date), to_dt(end_date))
     schedule += get_custom(start_date, end_date, config)

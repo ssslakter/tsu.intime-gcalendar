@@ -1,23 +1,29 @@
 
-import json
 from dataclasses import dataclass
 
-from intime_gcalendar.in_time_client import INTIME_URL
+from omegaconf import OmegaConf, SCMode
+
+INTIME_URL = "https://intime.tsu.ru/api/web/v1"
+
+
+@dataclass
+class Filters:
+    whitelist_groups_names: list[str]
+    blacklist_lesson_names: list[str]
+    extra_lessons: list[dict]
 
 
 @dataclass
 class Config:
-    time_zone: str
     faculty_name: str
     group_name: str
-    allowed_group_names: list[str]
-    blacklist: list[str]
-    custom: list[dict] = None
-    calendar_id: str = None
+    filters: Filters
+    calendar_id: str
     intime_url: str = INTIME_URL
 
-    @staticmethod
-    def load_cfg(file):
-        with open(file, 'r', encoding="utf8") as f:
-            cfg = json.load(f)
-            return Config(**cfg)
+
+def load_cfg(file='./config.yaml'):
+    conf = OmegaConf.load(file)
+    schema = OmegaConf.structured(Config)
+    conf: Config = OmegaConf.merge(conf, schema)
+    return conf

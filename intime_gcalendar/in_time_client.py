@@ -2,10 +2,8 @@ import datetime as dt
 
 import requests
 
-from .models import Faculty, Group, Lesson, from_dict
-
-INTIME_URL = "https://intime.tsu.ru/api/web/v1"
-
+from .domain import Faculty, Group, Lesson, from_dict
+from .config import INTIME_URL
 
 class InTimeClient:
     def __init__(self, api_url=INTIME_URL):

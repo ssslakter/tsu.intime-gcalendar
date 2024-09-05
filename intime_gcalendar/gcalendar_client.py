@@ -7,8 +7,7 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 
 from .config import Config
-from .logic import type_to_color, type_to_description
-from .models import Lesson
+from .domain import Lesson
 
 # If modifying these scopes, delete the file token.json.
 SCOPES = ['https://www.googleapis.com/auth/calendar.events',
@@ -31,34 +30,21 @@ class GCalendarClient:
             if creds and creds.expired and creds.refresh_token:
                 creds.refresh(Request())
             else:
-                flow = InstalledAppFlow.from_client_secrets_file(
-                    'credentials.json', SCOPES)
+                flow = InstalledAppFlow.from_client_secrets_file('credentials.json', SCOPES)
                 creds = flow.run_local_server(port=0)
             with open('token.json', 'w') as token:
                 token.write(creds.to_json())
-
         return creds
 
-    def get_colors(self):
-        colors = self.service.colors().get().execute()
-        for id_, color in colors['event'].items():
-            print(f"{id_}: '{color['background']}', '{color['foreground']}'")
-
     def get_events(self, start_date: datetime.datetime, end_date: datetime.datetime):
-        events_result = self.service.events().list(calendarId=self.config.calendar_id, timeMin=start_date.isoformat("T")+"Z",
-                                                   timeMax=(end_date+datetime.timedelta(days=1)).isoformat("T")+"Z",
+        events_result = self.service.events().list(calendarId=self.config.calendar_id, timeMin=start_date,
+                                                   timeMax=end_date+datetime.timedelta(days=1),
                                                    singleEvents=True,
                                                    orderBy='startTime').execute()
-        events = events_result.get('items', [])
-        return events
+        return events_result.get('items', [])
 
     def create_calendar(self):
-        data = {
-            'summary': "Schedule",
-            'timeZone': self.config.time_zone
-        }
-        result = self.service.calendars().insert(body=data).execute()
-        print(result)
+        result = self.service.calendars().insert(body={'summary': "Schedule"}).execute()
         return result['id']
 
     def add_lesson(self, lesson: Lesson, date: datetime.datetime):
