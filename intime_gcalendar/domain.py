@@ -32,7 +32,7 @@ class Lesson:
     starts_utc: dt.datetime
     ends_utc: dt.datetime
     title: str
-    lesson_type: str = "PRACTICE"
+    lesson_type: str
     professor: str = None
     audience: str = None
     groups: str = None
@@ -43,6 +43,7 @@ class Lesson:
         x['professor'] = x['professor']['fullName']
         x['audience'] = x['audience']['name']
         x['groups'] = ', '.join([g['name'] for g in x['groups']])
+        x['lesson_type'] = x['lessonType']
         for k in ['starts', 'ends']:
             # api uses seconds from midnight in UTC
             x[f'{k}_utc'] = date_with_seconds(date, x[k], tzinfo=dt.timezone.utc)
@@ -53,23 +54,42 @@ class Lesson:
 class Event:
     '''Google calendar event'''
     summary: str
-    location: str
-    description: str
-    start: dict
-    end: dict
-
+    start: dt.datetime
+    end: dt.datetime
+    location: str = None
+    description: str = None
+    id: str = None
+    
+    def __eq__(self, other):
+        # we want to compare only by summary, start and end, for cases when description or location changes
+        return all(getattr(self, k) == getattr(other, k) for k in ['summary', 'start', 'end'])
+    
     @staticmethod
     def from_lesson(lesson: Lesson):
         return Event(
             summary=lesson.title,
             location=lesson.audience,
-            description=f"{type_to_description(lesson.lesson_type)}\n{lesson.professor}\n{lesson.groups}",
-            start={'dateTime': lesson.starts_utc.isoformat()},
-            end={'dateTime': lesson.ends_utc.isoformat()},
+            description=f"{type_to_desc(lesson.lesson_type)}\n{lesson.professor}\n{lesson.groups}",
+            start=lesson.starts_utc,
+            end=lesson.ends_utc
         )
+        
+    @staticmethod
+    def from_gapi_dict(d):
+        for k in ['start', 'end']:
+            d[k] = dt.datetime.fromisoformat(d[k]['dateTime'])
+        return from_dict(Event, d)
+    
+    def to_gapi_dict(self):
+        return {
+            'summary': self.summary,
+            'location': self.location,
+            'description': self.description,
+            'start': {'dateTime': self.start.isoformat()},
+            'end': {'dateTime': self.end.isoformat()}
+        }
 
-
-def type_to_description(lesson_type: str):
+def type_to_desc(lesson_type: str):
     dm = {
         "SEMINAR": "Семинар",
         "LECTURE": "Лекция",

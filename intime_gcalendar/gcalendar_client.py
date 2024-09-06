@@ -7,7 +7,7 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 
 from .config import Config
-from .domain import Lesson
+from .domain import Event, Lesson, from_dict
 
 # If modifying these scopes, delete the file token.json.
 SCOPES = ['https://www.googleapis.com/auth/calendar.events',
@@ -36,28 +36,20 @@ class GCalendarClient:
                 token.write(creds.to_json())
         return creds
 
-    def get_events(self, start_date: datetime.datetime, end_date: datetime.datetime):
-        events_result = self.service.events().list(calendarId=self.config.calendar_id, timeMin=start_date,
-                                                   timeMax=end_date+datetime.timedelta(days=1),
-                                                   singleEvents=True,
-                                                   orderBy='startTime').execute()
-        return events_result.get('items', [])
+    def get_events(self, start_date: datetime.datetime, end_date: datetime.datetime) -> list[Event]:
+        s, e = start_date.isoformat(), (end_date+datetime.timedelta(days=1)).isoformat()
+        res = self.service.events().list(calendarId=self.config.calendar_id,
+                                         timeMin=s, timeMax=e, singleEvents=True,
+                                         orderBy='startTime').execute().get('items', [])
+        return [Event.from_gapi_dict(x) for x in res]
 
-    def create_calendar(self):
-        result = self.service.calendars().insert(body={'summary': "Schedule"}).execute()
-        return result['id']
-
-    def add_lesson(self, lesson: Lesson, date: datetime.datetime):
-        event = {
-            'summary': lesson.title,
-            'location': lesson.audience,
-            'description': f"{type_to_description(lesson.lesson_type)}\n{lesson.professor}",
-            'start': {
-                'dateTime': lesson.start_utc.isoformat()+"Z"
-            },
-            'end': {
-                'dateTime': lesson.end_utc.isoformat()+"Z"
-            },
-            'workingLocationProperties.customLocation.label': "lesson"
-        }
-        self.service.events().insert(calendarId=self.config.calendar_id, body=event).execute()
+    def add_event(self, event: Event):
+        self.service.events().insert(
+            calendarId=self.config.calendar_id,
+            body=event.to_gapi_dict()).execute()
+        
+    def update_event(self, id: str, event: Event):
+        self.service.events().update(
+            calendarId=self.config.calendar_id,
+            eventId=id,
+            body=event.to_gapi_dict()).execute()
