@@ -77,7 +77,8 @@ class Event:
     @staticmethod
     def from_gapi_dict(d):
         for k in ['start', 'end']:
-            d[k] = dt.datetime.fromisoformat(d[k]['date'])
+            date = d[k].get('dateTime', d[k].get('date'))
+            d[k] = dt.datetime.fromisoformat(date)
         return from_dict(Event, d)
     
     def to_gapi_dict(self):
